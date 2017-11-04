@@ -13,3 +13,4 @@ categories = ["command-line-utilities"]
 repository = "https://github.com/dmerejkowsky/rucp"
 
 [dependencies]
+tempdir = "0.3"
