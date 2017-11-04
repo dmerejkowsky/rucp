@@ -3,8 +3,13 @@ name = "rucp"
 version = "0.1.0"
 authors = ["Dimitri Merejkowsky <d.merej@gmail.com>"]
 
+readme = "README.md"
 description = "cp and mv with a progress bar"
 license = "BSD-3-Clause"
+license-file = "LICENSE"
+
+keywords = ["cp", "mv", "progressbar", "command line"]
+categories = ["command-line-utilities"]
 
 repository = "https://github.com/dmerejkowsky/rucp"
 
