@@ -1,0 +1,11 @@
+[package]
+name = "rucp"
+version = "0.1.0"
+authors = ["Dimitri Merejkowsky <d.merej@gmail.com>"]
+
+description = "cp and mv with a progress bar"
+license = "BSD-3-Clause"
+
+repository = "https://github.com/dmerejkowsky/rucp"
+
+[dependencies]
