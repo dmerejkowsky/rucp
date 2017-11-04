@@ -14,19 +14,17 @@ struct TransferRequest<'a> {
     destination: &'a str,
 }
 
-impl<'a> TransferRequest<'a> {
-    pub fn new(args: &[String]) -> Result<TransferRequest, String> {
-        let mut res = TransferRequest{sources: vec![], destination: ""};
-        let arg_count = args.len();
-        if arg_count < 2 {
-            return Err(format!("Usage: {} SRC [SRC ...] DEST", args[0]))
-        }
-        for i in 1..arg_count-1 {
-            res.sources.push(&args[i]);
-        }
-        res.destination = &args[arg_count-1];
-        Ok(res)
+fn parse_args(args: &[String]) -> Result<TransferRequest, String> {
+    let mut res = TransferRequest{sources: vec![], destination: ""};
+    let arg_count = args.len();
+    if arg_count < 2 {
+        return Err(format!("Usage: {} SRC [SRC ...] DEST", args[0]))
     }
+    for i in 1..arg_count-1 {
+        res.sources.push(&args[i]);
+    }
+    res.destination = &args[arg_count-1];
+    Ok(res)
 }
 
 fn copy(source: &str, destination: &str) -> io::Result<()> {
@@ -57,7 +55,7 @@ fn do_transfer(request: &TransferRequest) -> io::Result<()> {
 }
 
 pub fn run(args: Vec<String>) -> Result<(), String> {
-    let request = TransferRequest::new(&args)?;
+    let request = parse_args(&args)?;
     let transfer_outcome = do_transfer(&request);
     match transfer_outcome {
         Err(err) => return Err(err.to_string()),
@@ -71,9 +69,9 @@ mod test {
     use tempdir::TempDir;
 
     #[test]
-    fn parse_sources_and_dest() {
-        let input = vec![String::from("rucp"), String::from("src.txt"), String::from("dest.txt")];
-        let transfer_request = TransferRequest::new(&input).expect("invalid input");
+    fn parse_args_into_sources_and_dest() {
+        let args = vec![String::from("rucp"), String::from("src.txt"), String::from("dest.txt")];
+        let transfer_request = parse_args(&args).expect("invalid input");
         assert_eq!(transfer_request.sources, vec!["src.txt"]);
         assert_eq!(transfer_request.destination, "dest.txt");
     }
