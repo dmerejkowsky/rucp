@@ -7,6 +7,7 @@ mod copy;
 
 pub fn run(args: Vec<String>) -> Result<(), String> {
     let request = args::parse_args(&args)?;
+    let request = transfer::validate(request)?;
     let transfer_outcome = transfer::do_transfer(&request);
     match transfer_outcome {
         Err(err) => return Err(err.to_string()),
