@@ -54,7 +54,7 @@ mod test {
     }
 
     #[test]
-    fn copy() {
+    fn test_copy() {
         let tmp_dir = TempDir::new("test-rucp").expect("failed to create temp dir");
         let contents: Vec<u8> = vec![0xba; 10 * BUFFER_SIZE + 123];
         let (src_path, dest_path) = setup_test(tmp_dir.path(), &contents);

@@ -105,6 +105,23 @@ mod test {
         res
     }
 
+    fn get_transfer<'a>(paths: &'a Vec<&PathBuf>) -> Transfer {
+        let request = build_request(&paths);
+        let valid_request = validate(request).unwrap();
+        let transfer = valid_request.compute_transfer();
+        let transfer = transfer.expect("compute_transfer failed");
+        return transfer;
+    }
+
+    fn assert_error<'a>(paths: &'a Vec<&PathBuf>, path: &'a PathBuf, error: &str) {
+        let request = build_request(&paths);
+        let res = validate(request);
+        let actual_error = res.err().unwrap();
+        let expected_error = format!("{} {}", path.to_str().unwrap(), error);
+        assert_eq!(actual_error, expected_error);
+    }
+
+
     #[test]
     fn compute_file_file() {
         let tmp_dir = TempDir::new("test-rucp").expect("failed to create temp dir");
@@ -117,14 +134,9 @@ mod test {
         File::create(&dest_path).expect("failed to create dest file");
 
         let paths = vec![&src_path, &dest_path];
-        let request = build_request(&paths);
-        let valid_request = validate(request);
-        assert!(valid_request.is_ok());
+        let transfer = get_transfer(&paths);
 
-        let transfer = valid_request.unwrap().compute_transfer();
-        let transfer = transfer.expect("");
         assert_eq!(transfer.steps.len(), 1);
-
         let actual_step = &transfer.steps[0];
         let expected = TransferStep::Cp(
             src_path.clone(),
@@ -145,12 +157,7 @@ mod test {
         fs::create_dir(&dest_path).expect("failed to create dest dir");
 
         let paths = vec![&src_path, &dest_path];
-        let request = build_request(&paths);
-        let valid_request = validate(request);
-        assert!(valid_request.is_ok());
-
-        let transfer = valid_request.unwrap().compute_transfer();
-        let transfer = transfer.expect("");
+        let transfer = get_transfer(&paths);
         assert_eq!(transfer.steps.len(), 1);
 
         let full_dest_path = tmp_path.join("dest/src.txt");
@@ -162,7 +169,7 @@ mod test {
         assert_eq!(actual_step, &expected);
     }
     #[test]
-    fn validate_source_exist() {
+    fn source_does_not_exist() {
         let tmp_dir = TempDir::new("test-rucp").expect("failed to create temp dir");
         let tmp_path = tmp_dir.path();
 
@@ -171,13 +178,12 @@ mod test {
         File::create(&dest_path).expect("failed to create dest file");
 
         let paths = vec![&src_path, &dest_path];
-        let request = build_request(&paths);
-        let error = validate(request).err().unwrap();
-        assert_eq!(error, format!("{} does not exist", src_path.to_str().unwrap()));
+
+        assert_error(&paths, &src_path, "does not exist");
     }
 
     #[test]
-    fn validate_dest_is_dir_when_several_sources() {
+    fn several_sources__dest_not_a_directory() {
         let tmp_dir = TempDir::new("test-rucp").expect("failed to create temp dir");
         let tmp_path = tmp_dir.path();
 
@@ -191,13 +197,12 @@ mod test {
 
 
         let paths = vec![&one_path, &two_path, &three_path];
-        let request = build_request(&paths);
-        let error = validate(request).err().unwrap();
-        assert_eq!(error, format!("{} should be a directory", three_path.to_str().unwrap()));
+
+        assert_error(&paths, &three_path, "should be a directory");
     }
 
     #[test]
-    fn validate_files_dir() {
+    fn serveral_sources() {
         let tmp_dir = TempDir::new("test-rucp").expect("failed to create temp dir");
         let tmp_path = tmp_dir.path();
 
@@ -211,9 +216,9 @@ mod test {
 
 
         let paths = vec![&one_path, &two_path, &dest_path];
-        let request = build_request(&paths);
-        let valid_request = validate(request);
-        assert!(valid_request.is_ok());
+        let transfer = get_transfer(&paths);
+
+        // TODO
     }
 
 }
