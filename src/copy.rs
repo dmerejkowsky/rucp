@@ -26,3 +26,45 @@ pub fn copy(source: &str, destination: &str) -> io::Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::fs;
+    use std::fs::File;
+    use std::path::{Path,PathBuf};
+    use tempdir::TempDir;
+
+    fn setup_test(tmp_path: &Path, contents: &Vec<u8>) -> (PathBuf, PathBuf) {
+        let src_path = tmp_path.join("src.txt");
+        let dest_path = tmp_path.join("dest.txt");
+        let mut src_file = File::create(&src_path).expect("failed to create file");
+        src_file.write_all(&contents).expect("could no write to test file");
+        (src_path, dest_path)
+    }
+
+    fn check_copy(dest_path: &PathBuf, contents: &Vec<u8>) {
+        let mut dest_file = File::open(&dest_path).expect("failed to open dest");
+        let dest_size :usize = fs::metadata(&dest_path).expect("failed to stat dest").len() as usize;
+        assert_eq!(dest_size, contents.len());
+        let mut actual = vec![0; dest_size];
+        dest_file.read(&mut actual).expect("could not read dest");
+        assert_eq!(actual, *contents);
+    }
+
+    fn copy_paths(a_path: &Path, b_path: &Path) -> io::Result<()> {
+        let a_str = a_path.to_str().unwrap();
+        let b_str = b_path.to_str().unwrap();
+        copy(&a_str, &b_str)
+    }
+
+    #[test]
+    fn copy_file_to_file() {
+        let tmp_dir = TempDir::new("test-rucp").expect("failed to create temp dir");
+        let contents: Vec<u8> = vec![0xba; 10 * BUFFER_SIZE + 123];
+        let (src_path, dest_path) = setup_test(tmp_dir.path(), &contents);
+        let res = copy_paths(&src_path, &dest_path);
+        assert!(res.is_ok());
+        check_copy(&dest_path, &contents);
+    }
+}
