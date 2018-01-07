@@ -1,4 +1,5 @@
 use super::copy;
+use std;
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -26,6 +27,20 @@ pub struct Transfer {
     steps: Vec<TransferStep>,
 }
 
+fn get_file_name(path: &Path) -> Result<&std::ffi::OsStr, String> {
+    let maybe_str = path.to_str();
+    let as_str;
+    match maybe_str {
+        None => return Err(format!("Could not convert {:?} as string", path)),
+        Some(s) => as_str = s
+    }
+    let res = path.file_name();
+    match res {
+        None => Err(format!("{} has no name", as_str)),
+        Some(name) => Ok(name),
+    }
+}
+
 impl<'a> ValidRequest<'a> {
     /*
      * file - file -> copy(file, file)
@@ -33,20 +48,37 @@ impl<'a> ValidRequest<'a> {
      *  dir - dir -> mkdir, copy, mkdir, copy ...
      */
     pub fn compute_transfer(&self) -> Result<Transfer, String> {
-        let mut steps = vec![];
+        if self.sources.len() == 1 {
+            self.compute_transfer_one_source()
+        } else {
+            self.compute_transfer_several_sources()
+        }
+    }
+
+    fn compute_transfer_one_source(&self) -> Result<Transfer, String> {
         let src_path = Path::new(self.sources[0]).to_path_buf();
         let dest_path = Path::new(self.destination).to_path_buf();
         let full_dest_path;
         if dest_path.is_dir() {
-            let src_name = src_path.file_name();
-            match src_name {
-                None => return Err(format!("{} has no name", src_path.to_str().unwrap())),
-                Some(name) => full_dest_path = dest_path.join(name),
-            }
+            let file_name = get_file_name(&src_path)?;
+            full_dest_path = dest_path.join(file_name);
         } else {
             full_dest_path = dest_path;
         }
-        steps.push(TransferStep::Cp(src_path, full_dest_path));
+        let step = TransferStep::Cp(src_path, full_dest_path);
+        Ok(Transfer{steps: vec![step]})
+    }
+
+    fn compute_transfer_several_sources(&self) -> Result<Transfer, String> {
+        let mut steps = vec![];
+        let dest_path = Path::new(self.destination).to_path_buf();
+        for source in &self.sources {
+            let src_path = Path::new(source).to_path_buf();
+            let file_name = get_file_name(&src_path)?;
+            let full_dest_path = dest_path.clone().join(file_name);
+            let step = TransferStep::Cp(src_path.clone(), full_dest_path);
+            steps.push(step);
+        }
         Ok(Transfer{steps: steps})
     }
 }
@@ -183,7 +215,7 @@ mod test {
     }
 
     #[test]
-    fn several_sources__dest_not_a_directory() {
+    fn several_sources_but_dest_not_a_directory() {
         let tmp_dir = TempDir::new("test-rucp").expect("failed to create temp dir");
         let tmp_path = tmp_dir.path();
 
@@ -218,7 +250,46 @@ mod test {
         let paths = vec![&one_path, &two_path, &dest_path];
         let transfer = get_transfer(&paths);
 
-        // TODO
+
+        let actual_steps = &transfer.steps;
+        let expected_steps = vec![
+            TransferStep::Cp(one_path.clone(), dest_path.join("one.txt")),
+            TransferStep::Cp(two_path.clone(), dest_path.join("two.txt")),
+        ];
+
+        assert_eq!(actual_steps, &expected_steps);
     }
+
+    /*
+    #[test]
+    fn subdirs() {
+        let tmp_dir = TempDir::new("test-rucp").expect("failed to create temp dir");
+        let tmp_path = tmp_dir.path();
+
+        let src_path = tmp_path.join("src");
+        fs::create_dir(&src_path).expect("failed to create src dir");
+
+        let sub_path = src_path.join("sub");
+        fs::create_dir(&sub_path).expect("failed to create sub path");
+
+        let a_path = sub_path.join("a.txt");
+
+        let dest_path = tmp_path.join("dest");
+        fs::create_dir(&dest_path).expect("failed to create dest path");
+
+        let paths = vec![&src_path, &dest_path];
+        let transfer = get_transfer(&paths);
+
+
+        let actual_steps = &transfer.steps;
+
+        let expected_steps = vec![
+            TransferStep::MkDir(dest_path.clone().join("sub")),
+            TransferStep::Cp(a_path.clone(), dest_path.join("sub/a.txt")),
+        ];
+
+        assert_eq!(actual_steps, &expected_steps);
+    }
+    */
 
 }
