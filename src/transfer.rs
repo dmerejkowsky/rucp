@@ -76,6 +76,7 @@ impl<'a> ValidRequest<'a> {
             let src_path = Path::new(source).to_path_buf();
             let file_name = get_file_name(&src_path)?;
             let full_dest_path = dest_path.clone().join(file_name);
+            // FIXME: why do I need src_path.clone() here ?
             let step = TransferStep::Cp(src_path.clone(), full_dest_path);
             steps.push(step);
         }
