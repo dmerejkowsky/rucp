@@ -3,12 +3,13 @@ use std::io::BufReader;
 use std::io::BufWriter;
 use std::io::{self, Write};
 use std::fs::File;
+use std::path::Path;
 
 pub const BUFFER_SIZE: usize = 100 * 1024;
 
 
-pub fn copy(source: &str, destination: &str) -> io::Result<()> {
-    println!("{} -> {}", source, destination);
+pub fn copy(source: &Path, destination: &Path) -> io::Result<()> {
+    println!("{} -> {}", source.to_str().unwrap(), destination.to_str().unwrap());
     let src_path = File::open(source)?;
     let mut buf_reader = BufReader::new(src_path);
     let dest_path = File::create(destination)?;
@@ -52,18 +53,12 @@ mod test {
         assert_eq!(actual, *contents);
     }
 
-    fn copy_paths(a_path: &Path, b_path: &Path) -> io::Result<()> {
-        let a_str = a_path.to_str().unwrap();
-        let b_str = b_path.to_str().unwrap();
-        copy(&a_str, &b_str)
-    }
-
     #[test]
-    fn copy_file_to_file() {
+    fn copy() {
         let tmp_dir = TempDir::new("test-rucp").expect("failed to create temp dir");
         let contents: Vec<u8> = vec![0xba; 10 * BUFFER_SIZE + 123];
         let (src_path, dest_path) = setup_test(tmp_dir.path(), &contents);
-        let res = copy_paths(&src_path, &dest_path);
+        let res = copy(&src_path, &dest_path);
         assert!(res.is_ok());
         check_copy(&dest_path, &contents);
     }
