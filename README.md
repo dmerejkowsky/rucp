@@ -1,4 +1,5 @@
-rucp
-====
+**This project is archived**
 
-`cp` and `mv` with a progress bar
+I'm now working on a rewrite called [rusync](https://github.com/dmerejkowsky/rusync).
+
+See you there!
